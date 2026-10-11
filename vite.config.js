@@ -21,7 +21,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Separate TensorFlow.js into its own chunk for better caching
-          'tensorflow': ['@tensorflow/tfjs', '@teachablemachine/image']
+          'tensorflow': ['@tensorflow/tfjs']
         }
       }
     }

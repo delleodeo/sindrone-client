@@ -173,6 +173,24 @@ export const getChatHistory = (sessionId, limit = 50, offset = 0) =>
 export const deleteChatSession = (sessionId) =>
   api.delete(`/chat/session/${sessionId}`);
 
+// Monitoring (soil, weather, yield)
+export const postSoilReading = (reading) =>
+  api.post('/monitoring/soil', reading);
+
+export const getLatestSoil = () => api.get('/monitoring/soil/latest');
+
+export const getSoilHistory = (limit = 50) =>
+  api.get('/monitoring/soil/history', { limit });
+
+export const fetchWeather = (lat, lon, days = 3) =>
+  api.get('/monitoring/weather', { lat, lon, days });
+
+export const fetchLocationName = (lat, lon) =>
+  api.get('/monitoring/location', { lat, lon });
+
+export const predictSinturisYield = (payload = {}) =>
+  api.post('/monitoring/yield/sinturis', payload);
+
 // Utilities
 export const generateSessionId = () => {
   return crypto.randomUUID ? 

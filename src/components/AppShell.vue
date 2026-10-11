@@ -44,6 +44,13 @@
               Detect Disease
             </router-link>
             <router-link 
+              to="/soil-quality"
+              class="nav-link"
+              @click="closeMobileMenu"
+            >
+              Soil Monitoring
+            </router-link>
+            <router-link 
               to="/chat" 
               class="nav-link"
               @click="closeMobileMenu"
@@ -86,6 +93,7 @@
             <ul class="footer-links">
               <li><router-link to="/">Home</router-link></li>
               <li><router-link to="/detect">Disease Detection</router-link></li>
+              <li><router-link to="/soil-quality">Soil Monitoring</router-link></li>
               <li><router-link to="/chat">AI Assistant</router-link></li>
               <li><router-link to="/about">About</router-link></li>
             </ul>
