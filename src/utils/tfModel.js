@@ -15,8 +15,8 @@ class CitrusDiseaseModel {
       'Greening'
     ];
     
-    // Using the Teachable Machine shareable link
-    this.modelUrl = 'https://teachablemachine.withgoogle.com/models/_sIGGWs5K/';
+    // Use the model bundled with the application while Roboflow is disabled.
+    this.modelUrl = '/model/';
     
     // Disease label mappings
     this.diseaseMapping = {
@@ -44,16 +44,16 @@ class CitrusDiseaseModel {
     ];
   }
 
-  // Load the TensorFlow.js model from Teachable Machine
+  // Load the TensorFlow.js model bundled with the client
   async loadModel() {
     if (this.isLoaded || this.isLoading) return;
     
     this.isLoading = true;
     
     try {
-      console.log('Loading Teachable Machine model from URL...');
+      console.log('Loading bundled local Teachable Machine model from /model/');
       
-      // Load model from Teachable Machine shareable link
+      // Load the local model files from client/public/model.
       this.model = await tf.loadLayersModel(this.modelUrl + 'model.json');
       this.isLoaded = true;
       this.isLoading = false;
@@ -79,7 +79,7 @@ class CitrusDiseaseModel {
       // 1. Resize to 224x224
       // 2. Normalize to [-1, 1] range (not [0, 1])
       const tensor = tf.browser.fromPixels(imageElement)
-        .resizeNearestNeighbor([224, 224]) // Teachable Machine standard size
+        .resizeBilinear([224, 224]) // Match Teachable Machine image preprocessing
         .toFloat()
         .div(127.5) // Normalize to [0, 2]
         .sub(1) // Shift to [-1, 1] range (Teachable Machine standard)
@@ -164,9 +164,12 @@ class CitrusDiseaseModel {
       img.onload = async () => {
         try {
           const result = await this.predictDisease(img);
+          result.image = { width: img.naturalWidth, height: img.naturalHeight };
           resolve(result);
         } catch (error) {
           reject(error);
+        } finally {
+          URL.revokeObjectURL(img.src);
         }
       };
 
@@ -202,22 +205,26 @@ class CitrusDiseaseModel {
     });
   }
 
-  // Simulated pest scan (fake confidence values for now)
-  async predictPestFromFile(file) {
+  // Manual pest-selection mode. The selected number determines the result.
+  async predictPestFromFile(file, pestNumber) {
     return new Promise((resolve, reject) => {
       if (!file || !file.type.startsWith('image/')) {
         reject(new Error('Invalid file type. Please provide an image file.'));
         return;
       }
 
+      const selectedIndex = Number(pestNumber) - 1;
+      if (!Number.isInteger(selectedIndex) || !this.pestList[selectedIndex]) {
+        reject(new Error('Select a pest number from 1 to 5.'));
+        return;
+      }
+
       const img = new Image();
       img.onload = async () => {
         try {
-          // Generate pseudo-random confidences (not real predictions)
-          const rnd = () => Math.min(0.99, Math.max(0.02, Math.random()));
-          const results = this.pestList.map(p => ({
+          const results = this.pestList.map((p, index) => ({
             className: p.className,
-            confidence: rnd(),
+            confidence: index === selectedIndex ? 1 : 0,
             diseaseKey: p.diseaseKey,
             displayName: p.displayName,
             description: p.description

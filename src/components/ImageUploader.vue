@@ -5,7 +5,7 @@
     <input
       ref="fileInput"
       type="file"
-      accept="image/*"
+      accept="image/jpeg,image/png,image/webp"
       @change="handleFileSelect"
       class="file-input"
       :disabled="isProcessing"
@@ -15,7 +15,7 @@
     <input
       ref="cameraInput"
       type="file"
-      accept="image/*"
+      accept="image/jpeg,image/png,image/webp"
       capture="environment"
       @change="handleFileSelect"
       class="file-input"
@@ -115,6 +115,25 @@
       <div class="spinner"></div>
       <p>Preparing image for analysis...</p>
     </div>
+
+    <div v-if="isCameraOpen" class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="camera-dialog-title">
+      <div class="camera-dialog-content">
+        <div class="camera-dialog-header">
+          <h3 id="camera-dialog-title">Take a photo</h3>
+          <button type="button" class="camera-close" @click="closeCamera" aria-label="Close camera">×</button>
+        </div>
+        <video ref="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+        <p v-if="cameraError" class="camera-error" role="alert">{{ cameraError }}</p>
+        <div class="camera-actions">
+          <button type="button" class="btn btn-primary" @click="capturePhoto" :disabled="!!cameraError">
+            Capture photo
+          </button>
+          <button type="button" class="btn btn-outline" @click="closeCamera">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -131,11 +150,14 @@ export default {
       isDragOver: false,
       isProcessing: false,
       validationError: null,
+      isCameraOpen: false,
+      cameraError: null,
+      cameraStream: null,
       
       // Validation constraints
-      maxFileSize: 10 * 1024 * 1024, // 10MB
+      // Base64 expands the request, so keep the source below Roboflow's 5 MB limit.
+      maxFileSize: Math.floor(3.5 * 1024 * 1024),
       allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
-      minImageSize: 224, // Minimum width/height for model
     };
   },
 
@@ -146,10 +168,59 @@ export default {
       }
     },
 
-    openCameraCapture() {
-      if (!this.isProcessing) {
-        this.$refs.cameraInput.click();
+    async openCameraCapture() {
+      if (this.isProcessing || this.isCameraOpen) return;
+
+      this.cameraError = null;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.cameraError = 'Camera access is not available in this browser. Use Upload from Device instead.';
+        return;
       }
+
+      try {
+        this.cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+        this.isCameraOpen = true;
+        await this.$nextTick();
+        this.$refs.cameraVideo.srcObject = this.cameraStream;
+      } catch (error) {
+        this.cameraStream = null;
+        this.cameraError = error.name === 'NotAllowedError'
+          ? 'Camera permission was denied. Allow camera access in your browser, then try again.'
+          : 'Unable to open the camera. Use Upload from Device instead.';
+      }
+    },
+
+    closeCamera() {
+      this.cameraStream?.getTracks().forEach((track) => track.stop());
+      this.cameraStream = null;
+      this.isCameraOpen = false;
+      this.cameraError = null;
+    },
+
+    async capturePhoto() {
+      const video = this.$refs.cameraVideo;
+      if (!video || !video.videoWidth || !video.videoHeight) {
+        this.cameraError = 'The camera is not ready yet. Please try again.';
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) {
+        this.cameraError = 'Unable to capture the photo. Please try again.';
+        return;
+      }
+
+      const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      this.closeCamera();
+      await this.processFile(file);
     },
 
     handleFileSelect(event) {
@@ -281,15 +352,6 @@ export default {
           const width = img.naturalWidth;
           const height = img.naturalHeight;
           
-          // Check minimum dimensions
-          if (width < this.minImageSize || height < this.minImageSize) {
-            resolve({
-              valid: false,
-              error: `Image too small. Minimum size is ${this.minImageSize}×${this.minImageSize} pixels.`
-            });
-            return;
-          }
-
           // Check aspect ratio (warn if very extreme)
           const aspectRatio = width / height;
           if (aspectRatio > 4 || aspectRatio < 0.25) {
@@ -344,7 +406,7 @@ export default {
   },
 
   beforeUnmount() {
-    // No cleanup needed for data URL previews
+    this.closeCamera();
   }
 };
 </script>
@@ -561,6 +623,66 @@ export default {
 .processing-status p {
   margin: 0;
   font-weight: 500;
+}
+
+.camera-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.camera-dialog-content {
+  width: min(100%, 34rem);
+  padding: var(--spacing-lg);
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.camera-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.camera-dialog-header h3 {
+  margin: 0;
+}
+
+.camera-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.camera-video {
+  width: 100%;
+  max-height: 65vh;
+  display: block;
+  background: #111827;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.camera-error {
+  margin: var(--spacing-md) 0 0;
+  color: var(--error);
+}
+
+.camera-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
 }
 
 /* Mobile Responsive */

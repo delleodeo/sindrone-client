@@ -140,95 +140,191 @@
       </div>
     </section>
 
-    <!-- Disease Info Section -->
-    <section class="diseases-info">
+    <!-- Supported class catalog -->
+    <section class="diseases-info supported-catalog">
       <div class="container">
         <div class="section-header">
-          <h2>Diseases We Can Detect</h2>
-          <p>Learn about common citrus diseases affecting dalandan crops</p>
+          <h2>Supported Citrus Diseases, Pests & Other Classes</h2>
+          <p>All: 40 · Diseases & Conditions: 15 · Pests: 18 · Other: 7</p>
         </div>
-        
-        <div class="diseases-grid">
-          <div class="disease-card healthy">
-            <div class="disease-icon">✅</div>
-            <h3>Healthy Citrus</h3>
-            <p>Normal, healthy dalandan leaves showing no signs of disease or pest damage.</p>
-            <div class="severity-indicator low">Low Risk</div>
+        <div class="catalog-controls">
+          <div class="catalog-tabs" role="tablist" aria-label="Class categories">
+            <button
+              v-for="tab in categoryTabs"
+              :key="tab.key"
+              class="catalog-tab"
+              :class="{ active: selectedCategory === tab.key }"
+              type="button"
+              role="tab"
+              :aria-selected="selectedCategory === tab.key"
+              @click="selectedCategory = tab.key"
+            >
+              {{ tab.label }} ({{ tab.count }})
+            </button>
           </div>
-          
-          <div class="disease-card">
-            <div class="disease-icon">🔵</div>
-            <h3>Black Spot</h3>
-            <p>Fungal disease causing dark spots on leaves and fruit, reducing crop quality.</p>
-            <div class="severity-indicator medium">Medium Risk</div>
-          </div>
-          
-          <div class="disease-card">
-            <div class="disease-icon">🟠</div>
-            <h3>Citrus Canker</h3>
-            <p>Bacterial disease creating raised lesions, potentially requiring quarantine measures.</p>
-            <div class="severity-indicator high">High Risk</div>
-          </div>
-          
-          <div class="disease-card">
-            <div class="disease-icon">🟡</div>
-            <h3>Greening (HLB)</h3>
-            <p>Severe bacterial disease causing yellow shoots and bitter fruit, often fatal to trees.</p>
-            <div class="severity-indicator high">High Risk</div>
-          </div>
-
-          <div class="disease-card pest">
-            <div class="disease-icon">🐛</div>
-            <h3>Citrus psyllid</h3>
-            <p>Curling/yellowing young leaves and stunted shoots; vector of citrus greening (HLB).</p>
-            <div class="severity-indicator high">High Risk</div>
-          </div>
-
-          <div class="disease-card pest">
-            <div class="disease-icon">🪱</div>
-            <h3>Citrus leafminer</h3>
-            <p>Winding tunnels or silvery trails on young leaves caused by larvae feeding under the leaf surface.</p>
-            <div class="severity-indicator medium">Monitor</div>
-          </div>
-
-          <div class="disease-card pest">
-            <div class="disease-icon">🪰</div>
-            <h3>Citrus fruit fly</h3>
-            <p>Larvae develop inside fruit causing rot and premature fruit drop; economic impact on yield and quality.</p>
-            <div class="severity-indicator high">High Risk</div>
-          </div>
-
-          <div class="disease-card pest">
-            <div class="disease-icon">🐜</div>
-            <h3>Scale insects</h3>
-            <p>Small, often immobile scales on leaves and branches; cause yellowing, weakening and honeydew deposits.</p>
-            <div class="severity-indicator medium">Monitor</div>
-          </div>
-
-          <div class="disease-card pest">
-            <div class="disease-icon">🧶</div>
-            <h3>Citrus mealybug</h3>
-            <p>White, cotton-like insects that excrete honeydew leading to sooty mold and reduced plant vigor.</p>
-            <div class="severity-indicator medium">Monitor</div>
-          </div>
+          <label class="catalog-search">
+            <span>Search supported classes</span>
+            <input v-model.trim="searchQuery" type="search" placeholder="Search by name or label" />
+          </label>
         </div>
+        <div v-if="filteredClasses.length" class="diseases-grid">
+          <article v-for="item in filteredClasses" :key="item.label" class="disease-card">
+            <div class="disease-icon" aria-hidden="true">{{ item.icon }}</div>
+            <h3>{{ item.displayName }}</h3>
+            <span class="catalog-category">{{ categoryLabel(item.category) }}</span>
+            <p>{{ item.description }}</p>
+            <details>
+              <summary>Model label</summary>
+              <code>{{ item.label }}</code>
+            </details>
+          </article>
+        </div>
+        <div v-else class="catalog-empty" role="status">
+          No supported class matches “{{ searchQuery }}”. Try another display name or exact model label.
+        </div>
+        <p class="catalog-note">
+          This is the model’s supported label set, not a list of pests confirmed in Oriental Mindoro.
+          Validate results on representative local dalandan images. See the
+          <a href="https://universe.roboflow.com/myproject-dgrxa/citrus-disease-detection-yoydc-ygw6l" target="_blank" rel="noopener noreferrer">pretrained Roboflow model</a>
+          and its CC BY 4.0 attribution.
+        </p>
+        <router-link to="/detect" class="btn btn-primary">Analyze an image</router-link>
       </div>
     </section>
   </div>
 </template>
 
 <script>
+import {
+  CLASS_CATALOG,
+  CLASS_CATEGORY_LABELS
+} from '../../../shared/classCatalog.js';
+
 export default {
   name: 'Home',
-  
-  mounted() {
-    // Analytics or tracking could go here
-    console.log('Home page loaded');
+
+  data() {
+    return {
+      classes: CLASS_CATALOG,
+      selectedCategory: 'all',
+      searchQuery: ''
+    };
+  },
+
+  computed: {
+    categoryTabs() {
+      return ['all', 'disease', 'pest', 'other'].map((key) => ({
+        key,
+        label: CLASS_CATEGORY_LABELS[key],
+        count: key === 'all'
+          ? this.classes.length
+          : this.classes.filter((item) => item.category === key).length
+      }));
+    },
+
+    filteredClasses() {
+      const query = this.searchQuery.toLowerCase();
+      return this.classes.filter((item) => {
+        const categoryMatches = this.selectedCategory === 'all' || item.category === this.selectedCategory;
+        const searchMatches = !query ||
+          item.displayName.toLowerCase().includes(query) ||
+          item.label.toLowerCase().includes(query);
+        return categoryMatches && searchMatches;
+      });
+    }
+  },
+
+  methods: {
+    categoryLabel(category) {
+      return CLASS_CATEGORY_LABELS[category] || 'Unknown';
+    }
   }
 };
 </script>
 
 <style scoped>
+.catalog-controls {
+  display: grid;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.catalog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.catalog-tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.catalog-tab.active,
+.catalog-tab:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-light);
+}
+
+.catalog-search {
+  display: grid;
+  gap: var(--spacing-xs);
+  max-width: 32rem;
+  margin: 0 auto;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.catalog-search input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.catalog-category {
+  display: inline-block;
+  margin-bottom: var(--spacing-sm);
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.disease-card details {
+  margin-top: var(--spacing-md);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.disease-card code {
+  display: block;
+  margin-top: var(--spacing-xs);
+  overflow-wrap: anywhere;
+}
+
+.catalog-empty,
+.catalog-note {
+  margin: var(--spacing-xl) auto;
+  max-width: 50rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.catalog-note a {
+  color: var(--primary);
+}
+
 /* Hero Section */
 .hero {
   background: linear-gradient(135deg, var(--green-50) 0%, var(--orange-50) 100%);

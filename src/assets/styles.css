@@ -52,6 +52,10 @@
   --error-bg: #fef2f2;
   --info: #3b82f6;
   --info-bg: #eff6ff;
+  --detection-glow: rgba(240, 253, 244, 0.9);
+  --success-text: #166534;
+  --warning-text: #92400e;
+  --error-text: #991b1b;
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -83,6 +87,42 @@
   /* Transitions */
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --card: #1f2937;
+  --card-hover: #374151;
+  --border: #374151;
+  --border-light: #4b5563;
+  --text: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --text-light: #ffffff;
+  --primary-light: #14532d;
+  --secondary-light: #7c2d12;
+  --success-bg: #14532d;
+  --warning-bg: #78350f;
+  --error-bg: #7f1d1d;
+  --info-bg: #1e3a8a;
+  --detection-glow: rgba(20, 83, 45, 0.22);
+  --success-text: #bbf7d0;
+  --warning-text: #fde68a;
+  --error-text: #fecaca;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+}
+
+html,
+body,
+.app-shell,
+.app-main {
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Reset & Base Styles */

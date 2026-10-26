@@ -1,109 +1,82 @@
-<!-- FILE: client/src/components/PredictionCard.vue -->
 <template>
   <div class="prediction-card">
     <div class="prediction-header">
-      <h3>🔍 AI Analysis Results</h3>
-      <div class="analysis-timestamp">
-        <span>{{ formatTimestamp(result.timestamp) }}</span>
-      </div>
+      <h3>Detection Results</h3>
+      <span class="analysis-timestamp">{{ formatTimestamp(result.timestamp) }}</span>
     </div>
 
-    <!-- Top Prediction (Primary Result) -->
-    <div class="top-prediction">
-      <div class="prediction-main">
-        <div class="disease-info">
-          <div class="disease-icon">{{ getDiseaseIcon(result.topPrediction.diseaseKey) }}</div>
-          <div class="disease-details">
-            <h4 class="disease-name">{{ result.topPrediction.displayName }}</h4>
-            <p class="disease-key">{{ result.topPrediction.diseaseKey }}</p>
-          </div>
-        </div>
-        
-        <div class="confidence-section">
-          <div class="confidence-value" :class="getConfidenceClass(result.topPrediction.confidence)">
-            {{ formatConfidence(result.topPrediction.confidence) }}%
-          </div>
-          <div class="confidence-label">Confidence</div>
-        </div>
-      </div>
-
-      <div class="confidence-bar-container">
-        <div class="confidence-bar">
-          <div 
-            class="confidence-fill"
-            :class="getConfidenceClass(result.topPrediction.confidence)"
-            :style="{ width: formatConfidence(result.topPrediction.confidence) + '%' }"
-          ></div>
-        </div>
-        <div class="confidence-text">
-          {{ getConfidenceDescription(result.topPrediction.confidence) }}
-        </div>
-      </div>
+    <div v-if="!hasDetections" class="empty-result" role="status">
+      <div class="empty-icon">🔎</div>
+      <h4>No supported detection</h4>
+      <p>No supported citrus condition or pest detected. Try a clearer close-up image.</p>
+      <small>
+        An empty result can also mean the image is blurry, the model missed a condition,
+        or the condition is outside the supported classes.
+      </small>
     </div>
 
-    <!-- Detailed Results (All Predictions) -->
-    <div v-if="showDetailed && result.allPredictions.length > 1" class="detailed-predictions">
-      <h4>📊 Detailed Analysis</h4>
-      
-      <div class="predictions-list">
-        <div 
-          v-for="(prediction, index) in result.allPredictions" 
-          :key="index"
-          class="prediction-item"
-          :class="{ 
-            'is-top': index === 0,
-            'low-confidence': prediction.confidence < 0.1 
-          }"
-        >
-          <div class="prediction-info">
-            <span class="prediction-icon">{{ getDiseaseIcon(prediction.diseaseKey) }}</span>
-            <span class="prediction-name">{{ prediction.displayName }}</span>
-          </div>
-          
-          <div class="prediction-confidence">
-            <div class="mini-confidence-bar">
-              <div 
-                class="mini-confidence-fill"
-                :style="{ width: formatConfidence(prediction.confidence) + '%' }"
-              ></div>
+    <template v-else>
+      <div class="top-prediction">
+        <div class="prediction-main">
+          <div class="condition-info">
+            <div class="condition-icon">{{ getConditionIcon(topPrediction.diseaseKey) }}</div>
+            <div>
+              <h4 class="condition-name">{{ topPrediction.displayName }}</h4>
+              <p class="condition-key">{{ topPrediction.className }}</p>
             </div>
-            <span class="confidence-percent">{{ formatConfidence(prediction.confidence) }}%</span>
+          </div>
+
+          <div class="confidence-section">
+            <div class="confidence-value">{{ formatConfidence(topPrediction.confidence) }}%</div>
+            <div class="confidence-label">Model confidence</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Model Information -->
+      <div v-if="showDetailed" class="detailed-predictions">
+        <h4>All accepted detections</h4>
+        <div class="predictions-list">
+          <div
+            v-for="(prediction, index) in predictions"
+            :key="`${prediction.className}-${index}`"
+            class="prediction-item"
+          >
+            <div class="prediction-info">
+              <span class="prediction-icon">{{ getConditionIcon(prediction.diseaseKey) }}</span>
+              <span>
+                <strong>{{ prediction.displayName }}</strong>
+                <small>{{ prediction.category }} · {{ prediction.className }}</small>
+              </span>
+            </div>
+            <span class="confidence-badge">{{ formatConfidence(prediction.confidence) }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="confidence-disclaimer">
+        Confidence shows how strongly the model matched a detection. It does not measure
+        disease severity or the percentage of the plant that is infected.
+      </div>
+    </template>
+
     <div v-if="showDetailed" class="model-info">
-      <details class="model-details">
-        <summary>🤖 Model Information</summary>
+      <details>
+        <summary>Model information</summary>
         <div class="model-content">
-          <div class="model-stat">
-            <span class="stat-label">Input Shape:</span>
-            <span class="stat-value">{{ result.modelInfo.inputShape?.join('×') || 'Unknown' }}</span>
+          <div>
+            <span class="stat-label">Provider</span>
+            <strong>{{ result.provider || 'Local TensorFlow.js model' }}</strong>
           </div>
-          <div class="model-stat">
-            <span class="stat-label">Classes:</span>
-            <span class="stat-value">{{ result.modelInfo.classes?.length || 0 }} diseases</span>
+          <div>
+            <span class="stat-label">Image size</span>
+            <strong>{{ result.image?.width || '—' }} × {{ result.image?.height || '—' }}</strong>
           </div>
-          <div class="model-stat">
-            <span class="stat-label">Analysis Time:</span>
-            <span class="stat-value">{{ getAnalysisTime() }}</span>
+          <div>
+            <span class="stat-label">Experimental threshold</span>
+            <strong>{{ result.threshold === undefined ? 'Not used' : `${formatConfidence(result.threshold)}%` }}</strong>
           </div>
         </div>
       </details>
-    </div>
-
-    <!-- Severity Indicator -->
-    <div class="severity-section">
-      <div class="severity-indicator" :class="getSeverityClass(result.topPrediction.diseaseKey)">
-        <span class="severity-icon">{{ getSeverityIcon(result.topPrediction.diseaseKey) }}</span>
-        <span class="severity-text">{{ getSeverityText(result.topPrediction.diseaseKey) }} Risk</span>
-      </div>
-      
-      <p class="severity-description">
-        {{ getSeverityDescription(result.topPrediction.diseaseKey) }}
-      </p>
     </div>
   </div>
 </template>
@@ -123,95 +96,50 @@ export default {
     }
   },
 
+  computed: {
+    predictions() {
+      return this.result.allPredictions || this.result.predictions || [];
+    },
+
+    topPrediction() {
+      return this.result.topPrediction || this.predictions[0] || null;
+    },
+
+    hasDetections() {
+      return this.result.status !== 'no_supported_detection' && Boolean(this.topPrediction);
+    }
+  },
+
   methods: {
-    getDiseaseIcon(diseaseKey) {
+    getConditionIcon(conditionKey) {
       const icons = {
-        'healthy': '✅',
+        healthy: '✅',
         'black-spot': '🔵',
-        'canker': '🟠',
-        'greening': '🟡'
+        canker: '🟠',
+        greening: '🟡',
+        'citrus-psyllid': '🪲',
+        'citrus-leafminer': '🐛',
+        'citrus-fruit-fly': '🪰',
+        'scale-insects': '🪲',
+        'red-wax-scale': '🔴'
       };
-      return icons[diseaseKey] || '❓';
+      return icons[conditionKey] || '🔎';
     },
 
     formatConfidence(confidence) {
-      return Math.round(confidence * 100);
-    },
-
-    getConfidenceClass(confidence) {
-      const percent = confidence * 100;
-      if (percent >= 80) return 'high-confidence';
-      if (percent >= 60) return 'medium-confidence';
-      return 'low-confidence';
-    },
-
-    getConfidenceDescription(confidence) {
-      const percent = confidence * 100;
-      if (percent >= 90) return 'Very High Confidence';
-      if (percent >= 80) return 'High Confidence';
-      if (percent >= 70) return 'Good Confidence';
-      if (percent >= 60) return 'Moderate Confidence';
-      if (percent >= 40) return 'Low Confidence';
-      return 'Very Low Confidence';
-    },
-
-    getSeverityClass(diseaseKey) {
-      const severity = this.getSeverityLevel(diseaseKey);
-      return `severity-${severity}`;
-    },
-
-    getSeverityLevel(diseaseKey) {
-      const severityMap = {
-        'healthy': 'low',
-        'black-spot': 'medium',
-        'canker': 'high', 
-        'greening': 'high'
-      };
-      return severityMap[diseaseKey] || 'medium';
-    },
-
-    getSeverityIcon(diseaseKey) {
-      const severity = this.getSeverityLevel(diseaseKey);
-      const icons = {
-        'low': '🟢',
-        'medium': '🟡',
-        'high': '🔴'
-      };
-      return icons[severity];
-    },
-
-    getSeverityText(diseaseKey) {
-      const severity = this.getSeverityLevel(diseaseKey);
-      return severity.charAt(0).toUpperCase() + severity.slice(1);
-    },
-
-    getSeverityDescription(diseaseKey) {
-      const descriptions = {
-        'healthy': 'Your plant appears healthy. Continue good care practices.',
-        'black-spot': 'Moderate disease that requires attention. Treatment recommended.',
-        'canker': 'Serious bacterial disease. Immediate action and expert consultation needed.',
-        'greening': 'Severe disease requiring urgent intervention. Contact agricultural services.'
-      };
-      return descriptions[diseaseKey] || 'Consult agricultural expert for proper assessment.';
+      const numeric = Number(confidence);
+      return Number.isFinite(numeric) ? Math.round(numeric * 100) : 0;
     },
 
     formatTimestamp(timestamp) {
-      try {
-        const date = new Date(timestamp);
-        return date.toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch (error) {
-        return 'Just now';
-      }
-    },
-
-    getAnalysisTime() {
-      // This could be calculated from actual timing data if available
-      return '< 1 second';
+      const date = new Date(timestamp);
+      if (Number.isNaN(date.getTime())) return 'Just now';
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     }
   }
 };
@@ -219,71 +147,68 @@ export default {
 
 <style scoped>
 .prediction-card {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
   overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
 }
 
 .prediction-header {
-  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: var(--bg-secondary);
 }
 
-.prediction-header h3 {
+.prediction-header h3,
+.condition-name,
+.detailed-predictions h4,
+.empty-result h4 {
   margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text);
 }
 
-.analysis-timestamp {
-  font-size: var(--font-size-sm);
+.analysis-timestamp,
+.condition-key,
+.prediction-info small,
+.empty-result small {
   color: var(--text-muted);
+  font-size: var(--font-size-sm);
 }
 
-/* Top Prediction */
-.top-prediction {
+.top-prediction,
+.empty-result {
   padding: var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
 }
 
 .prediction-main {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  justify-content: space-between;
+  gap: var(--spacing-lg);
 }
 
-.disease-info {
+.condition-info,
+.prediction-info {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
-.disease-icon {
+.condition-icon {
   font-size: 2.5rem;
-  line-height: 1;
 }
 
-.disease-name {
-  margin: 0 0 var(--spacing-xs) 0;
+.condition-name {
   font-size: var(--font-size-xl);
-  font-weight: 700;
-  color: var(--text);
 }
 
-.disease-key {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  font-weight: 500;
+.condition-key {
+  margin: var(--spacing-xs) 0 0;
+  font-family: monospace;
 }
 
 .confidence-section {
@@ -291,282 +216,115 @@ export default {
 }
 
 .confidence-value {
-  font-size: 2.5rem;
+  color: var(--success);
+  font-size: 2.4rem;
   font-weight: 800;
   line-height: 1;
-  margin-bottom: var(--spacing-xs);
-}
-
-.confidence-value.high-confidence {
-  color: var(--success);
-}
-
-.confidence-value.medium-confidence {
-  color: var(--warning);
-}
-
-.confidence-value.low-confidence {
-  color: var(--error);
 }
 
 .confidence-label {
-  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
   color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* Confidence Bar */
-.confidence-bar-container {
-  margin-bottom: var(--spacing-lg);
-}
-
-.confidence-bar {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius);
-  height: 12px;
-  overflow: hidden;
-  margin-bottom: var(--spacing-sm);
-}
-
-.confidence-fill {
-  height: 100%;
-  border-radius: var(--radius);
-  transition: var(--transition);
-}
-
-.confidence-fill.high-confidence {
-  background: linear-gradient(90deg, var(--success), var(--green-400));
-}
-
-.confidence-fill.medium-confidence {
-  background: linear-gradient(90deg, var(--warning), #fbbf24);
-}
-
-.confidence-fill.low-confidence {
-  background: linear-gradient(90deg, var(--error), #f87171);
-}
-
-.confidence-text {
-  text-align: center;
   font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
 }
 
-/* Detailed Predictions */
-.detailed-predictions {
+.detailed-predictions,
+.model-info {
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
-}
-
-.detailed-predictions h4 {
-  margin: 0 0 var(--spacing-lg) 0;
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--text);
+  border-top: 1px solid var(--border-light);
 }
 
 .predictions-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
 .prediction-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   border-radius: var(--radius);
   background: var(--bg-secondary);
-  transition: var(--transition);
 }
 
-.prediction-item.is-top {
-  background: var(--success-bg);
-  border: 1px solid var(--green-200);
-  font-weight: 600;
-}
-
-.prediction-item.low-confidence {
-  opacity: 0.6;
-}
-
-.prediction-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+.prediction-info span:last-child {
+  display: grid;
+  gap: 0.15rem;
 }
 
 .prediction-icon {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
 }
 
-.prediction-name {
+.confidence-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 999px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  font-weight: 700;
+}
+
+.confidence-disclaimer {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-top: 1px solid var(--border-light);
+  background: var(--info-bg);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
 
-.prediction-confidence {
-  display: flex;
-  align-items: center;
+.empty-result {
+  display: grid;
+  justify-items: center;
   gap: var(--spacing-sm);
+  text-align: center;
 }
 
-.mini-confidence-bar {
-  width: 60px;
-  height: 4px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.mini-confidence-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: var(--radius-sm);
-  transition: var(--transition);
-}
-
-.confidence-percent {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+.empty-result p {
+  margin: 0;
   color: var(--text-secondary);
-  min-width: 35px;
-  text-align: right;
 }
 
-/* Model Information */
-.model-info {
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-light);
+.empty-icon {
+  font-size: 2.5rem;
 }
 
-.model-details summary {
+.model-info summary {
   cursor: pointer;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-sm);
-  user-select: none;
-}
-
-.model-details summary:hover {
-  color: var(--primary);
+  font-weight: 600;
 }
 
 .model-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
 }
 
-.model-stat {
-  display: flex;
-  flex-direction: column;
+.model-content > div {
+  display: grid;
   gap: var(--spacing-xs);
 }
 
 .stat-label {
-  font-size: var(--font-size-xs);
   color: var(--text-muted);
-  font-weight: 500;
+  font-size: var(--font-size-xs);
 }
 
-.stat-value {
-  font-size: var(--font-size-sm);
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* Severity Section */
-.severity-section {
-  padding: var(--spacing-xl);
-}
-
-.severity-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  margin-bottom: var(--spacing-md);
-}
-
-.severity-low {
-  background: var(--success-bg);
-  color: var(--green-800);
-}
-
-.severity-medium {
-  background: var(--warning-bg);
-  color: #92400e;
-}
-
-.severity-high {
-  background: var(--error-bg);
-  color: #991b1b;
-}
-
-.severity-description {
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .prediction-header {
+@media (max-width: 640px) {
+  .prediction-header,
+  .prediction-main,
+  .prediction-item {
+    align-items: center;
     flex-direction: column;
-    gap: var(--spacing-sm);
     text-align: center;
-  }
-
-  .prediction-main {
-    flex-direction: column;
-    gap: var(--spacing-lg);
-    text-align: center;
-  }
-
-  .disease-info {
-    justify-content: center;
-  }
-
-  .disease-icon {
-    font-size: 2rem;
-  }
-
-  .confidence-value {
-    font-size: 2rem;
   }
 
   .model-content {
     grid-template-columns: 1fr;
-  }
-
-  .prediction-item {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    text-align: center;
-  }
-
-  .prediction-confidence {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .top-prediction,
-  .detailed-predictions,
-  .severity-section {
-    padding: var(--spacing-lg);
-  }
-
-  .prediction-header {
-    padding: var(--spacing-md) var(--spacing-lg);
   }
 }
 </style>

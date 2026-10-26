@@ -8,17 +8,18 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
     const config = {
+      ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
-      ...options,
     };
 
     // Add request body if provided
-    if (options.body && config.headers['Content-Type'] === 'application/json') {
+    if (options.body && !isFormData && config.headers['Content-Type'] === 'application/json') {
       config.body = JSON.stringify(options.body);
     }
 
@@ -150,15 +151,23 @@ export const healthCheck = () => api.get('/health');
 export const getRecommendation = (diseaseKey) => 
   api.get(`/recommendations/${diseaseKey}`);
 
-export const generateAIRecommendation = (diseaseKey, context = {}) =>
+export const generateAIRecommendation = (diseaseKey, context = {}, enhanceExisting = true) =>
   // Server validation expects `context` as a string; stringify objects
   api.post('/recommendations/generate', {
     diseaseKey,
     context: typeof context === 'string' ? context : JSON.stringify(context),
-    enhanceExisting: true
+    enhanceExisting
   });
 
 export const listRecommendations = () => api.get('/recommendations');
+
+// Roboflow-backed citrus disease and pest detection. The private provider key
+// stays on the server; the browser sends only the selected image.
+export const detectCitrusConditions = (file, { signal } = {}) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return api.post('/detection', formData, { signal });
+};
 
 // Chat
 export const sendChatMessage = (message, sessionId = null) =>

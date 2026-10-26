@@ -1,155 +1,169 @@
-<!-- FILE: client/src/views/Detect.vue -->
 <template>
   <div class="detect-page">
-    <div class="container container-sm">
-      <!-- Page Header -->
+    <div class="container detection-container">
       <div class="page-header">
-        <h1>Citrus Disease Detection</h1>
-        <p>Upload or capture a dalandan leaf image for instant AI-powered diagnosis</p>
+        <div class="page-eyebrow">SINDRONE IMAGE ANALYSIS</div>
+        <h1>Citrus Disease & Pest Detection</h1>
+        <p>Check a dalandan image for possible supported diseases, pests, and other classes.</p>
       </div>
 
-      <!-- Detection Flow -->
+      <ol class="flow-progress" aria-label="Detection progress">
+        <li :class="{ current: currentStep === 1, complete: currentStep > 1 }">
+          <span>1</span><strong>Choose image</strong>
+        </li>
+        <li :class="{ current: currentStep === 2, complete: currentStep > 2 }">
+          <span>2</span><strong>Analyze</strong>
+        </li>
+        <li :class="{ current: currentStep === 3, complete: currentStep > 3 }">
+          <span>3</span><strong>Review results</strong>
+        </li>
+      </ol>
+
       <div class="detection-flow">
-        
-        <!-- Step 1: Image Upload -->
-        <div class="detection-step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
+        <section
+          class="detection-step"
+          :class="{ active: currentStep >= 1, completed: currentStep > 1 }"
+          aria-labelledby="select-image-heading"
+        >
           <div class="step-header">
             <div class="step-number">1</div>
-            <h2>Select Image</h2>
+            <div>
+              <p class="step-kicker">START HERE</p>
+              <h2 id="select-image-heading">Choose an image</h2>
+              <p class="step-description">Use a clear photo where the leaf, fruit, or insect is easy to see.</p>
+            </div>
           </div>
-          
-          <ImageUploader 
+
+          <ImageUploader
             v-if="currentStep === 1"
             @image-selected="handleImageSelected"
             @error="handleError"
           />
-          
-          <!-- Show proceed button when image is selected in step 1 -->
-          <div v-if="currentStep === 1 && selectedImage" class="proceed-section">
-            <button @click="proceedToAnalysis" class="btn btn-primary btn-lg">
-              Proceed to Analysis →
-            </button>
-          </div>
-          
-          <div v-else-if="currentStep > 1 && selectedImage" class="image-preview-small">
-            <img :src="selectedImage.preview" alt="Selected leaf" />
-            <button @click="resetDetection" class="btn btn-outline btn-sm">
-              Choose Different Image
-            </button>
-          </div>
-        </div>
 
-        <!-- Step 2: AI Analysis -->
-        <div class="detection-step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
+          <div v-if="currentStep === 1 && selectedImage" class="proceed-section">
+            <button @click="proceedToAnalysis" class="btn btn-primary btn-lg proceed-button">
+              Continue to analysis <span aria-hidden="true">→</span>
+            </button>
+          </div>
+
+          <div v-else-if="currentStep > 1 && selectedImage" class="image-preview-small">
+            <img :src="selectedImage.preview" alt="Selected citrus image" />
+            <div>
+              <strong>{{ selectedImage.name }}</strong>
+              <button @click="resetDetection" class="btn btn-outline btn-sm">
+                Choose Different Image
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="detection-step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
           <div class="step-header">
             <div class="step-number">2</div>
-            <h2>AI Analysis</h2>
+            <div>
+              <p class="step-kicker">NEXT</p>
+              <h2>Analyze your image</h2>
+              <p class="step-description">The hosted model checks for supported citrus targets.</p>
+            </div>
           </div>
-          
-          <div v-if="currentStep === 2" class="analysis-section">
-            <div v-if="isAnalyzing" class="analysis-progress">
-              <div class="spinner-container">
-                <div class="spinner"></div>
-              </div>
-              <p>Analyzing image with AI model...</p>
+
+          <div v-if="currentStep === 2" class="analysis-section" aria-live="polite">
+            <div v-if="isAnalyzing" class="analysis-progress" aria-live="polite">
+              <div class="spinner-container"><div class="spinner"></div></div>
+              <p class="analysis-title">Analyzing your image…</p>
+              <p class="analysis-help">Keep this page open while the model checks the image.</p>
               <div class="progress-steps">
-                <div class="progress-step" :class="{ active: analysisStep >= 1 }">Loading model</div>
-                <div class="progress-step" :class="{ active: analysisStep >= 2 }">Processing image</div>
-                <div class="progress-step" :class="{ active: analysisStep >= 3 }">Running prediction</div>
+                <div class="progress-step" :class="{ active: analysisStep >= 1 }"><span>1</span> Uploading securely</div>
+                <div class="progress-step" :class="{ active: analysisStep >= 2 }"><span>2</span> Checking image</div>
               </div>
             </div>
 
             <div v-else-if="analysisError" class="analysis-error">
               <div class="alert alert-error">
-                <strong>Analysis Failed:</strong> {{ analysisError }}
+                <strong>Analysis failed:</strong> {{ analysisError }}
               </div>
-              <button @click="runAnalysis" class="btn btn-primary">
-                Try Again
-              </button>
+              <button @click="runAnalysis" class="btn btn-primary">Try Again</button>
             </div>
 
             <div v-else class="analysis-ready">
-              <p>Image loaded and ready for analysis</p>
-                <div class="analysis-actions">
-                  <button @click="runAnalysis" class="btn btn-primary btn-lg">
-                    Analyze Image
-                    <span>🔍</span>
-                  </button>
-                  <button @click="runPestScan" class="btn btn-accent btn-lg">
-                    Scan for Pests
-                    <span>🪲</span>
-                  </button>
-                </div>
+              <div class="ready-icon" aria-hidden="true">✓</div>
+              <p class="analysis-title">Image ready to analyze</p>
+              <p class="analysis-help">Your image stays private to this analysis request.</p>
+              <button @click="runAnalysis" class="btn btn-primary btn-lg">
+                Analyze image
+                <span>🔍</span>
+              </button>
             </div>
           </div>
 
-          <!-- Analysis Complete Preview -->
           <div v-else-if="currentStep > 2 && predictionResult" class="analysis-complete">
-            <PredictionCard 
-              :result="predictionResult"
-              :show-detailed="false"
-            />
+            <PredictionCard :result="predictionResult" :show-detailed="false" />
           </div>
-        </div>
+        </section>
 
-        <!-- Step 3: Results & Recommendations -->
-        <div class="detection-step" :class="{ active: currentStep >= 3 }">
+        <section
+          v-if="predictionResult?.status === 'detected'"
+          class="detection-step"
+          :class="{ active: currentStep >= 3 }"
+        >
           <div class="step-header">
             <div class="step-number">3</div>
-            <h2>Results & Recommendations</h2>
-          </div>
-          
-          <div v-if="currentStep === 3" class="results-section">
-            
-            <!-- Detailed Prediction Results -->
-            <div class="prediction-section">
-              <PredictionCard 
-                v-if="predictionResult"
-                :result="predictionResult"
-                :show-detailed="true"
-              />
+            <div>
+              <p class="step-kicker">DONE</p>
+              <h2>Review results</h2>
+              <p class="step-description">Use the boxes and model confidence as a starting point for field checking.</p>
             </div>
+          </div>
 
-            <!-- Recommendation Loading/Display -->
-            <div class="recommendation-section">
+          <div v-if="currentStep === 3 && predictionResult" class="results-section">
+            <DetectionOverlay
+              :src="selectedImage.preview"
+              :image="predictionResult.image"
+              :predictions="predictionResult.allPredictions"
+            />
+
+            <PredictionCard :result="predictionResult" :show-detailed="true" />
+
+            <div v-if="predictionResult.status === 'detected'" class="recommendation-section">
               <div v-if="isLoadingRecommendation" class="loading-recommendation">
                 <div class="spinner"></div>
-                <p>Loading treatment recommendations...</p>
+                <p>Loading management guidance…</p>
               </div>
 
               <div v-else-if="recommendationError" class="recommendation-error">
                 <div class="alert alert-warning">
-                  <strong>Recommendations Unavailable:</strong> {{ recommendationError }}
+                  <strong>Recommendations unavailable:</strong> {{ recommendationError }}
                 </div>
-                <button @click="loadRecommendation" class="btn btn-outline">
-                  Try Loading Again
-                </button>
+                <button @click="loadRecommendation" class="btn btn-outline">Try Loading Again</button>
               </div>
 
-              <RecommendationCard 
-                v-else-if="recommendation"
+              <RecommendationCard
+                v-else-if="recommendation && recommendationTarget"
                 :recommendation="recommendation"
-                :disease-key="predictionResult.topPrediction.diseaseKey"
+                :disease-key="recommendationTarget.diseaseKey"
               />
             </div>
 
-            <!-- Action Buttons -->
+            <p class="provider-note">
+              Powered by a pretrained Roboflow citrus detection model. Its performance must be
+              evaluated on local dalandan images before results are used for field decisions.
+            </p>
+
             <div class="results-actions">
-              <button @click="enhanceWithAI" class="btn btn-secondary" :disabled="isEnhancing">
+              <button
+                v-if="recommendationTarget"
+                @click="enhanceWithAI"
+                class="btn btn-secondary"
+                :disabled="isEnhancing"
+              >
                 <span v-if="isEnhancing" class="spinner"></span>
-                {{ isEnhancing ? 'Enhancing...' : 'Get AI-Enhanced Advice' }}
+                {{ isEnhancing ? 'Enhancing…' : 'Get AI-Enhanced Advice' }}
               </button>
-              
-              <router-link to="/chat" class="btn btn-outline">
-                Ask Follow-up Questions
-              </router-link>
-              
-              <button @click="resetDetection" class="btn btn-outline">
-                Analyze Another Image
-              </button>
+              <router-link to="/chat" class="btn btn-outline">Ask Follow-up Questions</router-link>
+              <button @click="resetDetection" class="btn btn-outline">Analyze Another Image</button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -157,16 +171,42 @@
 
 <script>
 import ImageUploader from '../components/ImageUploader.vue';
+import DetectionOverlay from '../components/DetectionOverlay.vue';
 import PredictionCard from '../components/PredictionCard.vue';
 import RecommendationCard from '../components/RecommendationCard.vue';
-import citrusModel from '../utils/tfModel.js';
-import { getRecommendation, generateAIRecommendation } from '../utils/api.js';
+import {
+  detectCitrusConditions,
+  generateAIRecommendation,
+  getRecommendation
+} from '../utils/api.js';
+import { CLASS_CATALOG_BY_LABEL } from '../../../shared/classCatalog.js';
+
+const PEST_KEYS = new Set([
+  'citrus-psyllid',
+  'citrus-leafminer',
+  'citrus-fruit-fly',
+  'scale-insects',
+  'red-wax-scale'
+]);
+
+const LEGACY_RECOMMENDATION_KEYS = Object.freeze({
+  healthy_leaf: 'healthy',
+  citrus_black_spot: 'black-spot',
+  citrus_canker: 'canker',
+  citrus_huanglongbing: 'greening',
+  citrus_psyllid: 'citrus-psyllid',
+  citrus_leafminer: 'citrus-leafminer',
+  citrus_fruit_fly: 'citrus-fruit-fly',
+  other_scale_insect: 'scale-insects',
+  red_wax_scale: 'red-wax-scale'
+});
 
 export default {
   name: 'Detect',
-  
+
   components: {
     ImageUploader,
+    DetectionOverlay,
     PredictionCard,
     RecommendationCard
   },
@@ -176,243 +216,291 @@ export default {
       currentStep: 1,
       selectedImage: null,
       isAnalyzing: false,
-        isPestScanning: false,
       analysisStep: 0,
       analysisError: null,
       predictionResult: null,
       recommendation: null,
       isLoadingRecommendation: false,
       recommendationError: null,
-      isEnhancing: false
+      isEnhancing: false,
+      activeDetectionController: null,
+      analysisRequestId: 0
     };
   },
 
-  mounted() {
-    // Preload the AI model
-    this.preloadModel();
+  computed: {
+    recommendationTarget() {
+      const predictions = this.predictionResult?.allPredictions || [];
+      return predictions.find((prediction) => prediction.diseaseKey !== 'healthy') || predictions[0] || null;
+    }
+  },
+
+  beforeUnmount() {
+    this.cancelActiveAnalysis();
   },
 
   methods: {
-    async preloadModel() {
-      try {
-        await citrusModel.loadModel();
-        console.log('Model preloaded successfully');
-      } catch (error) {
-        console.warn('Model preload failed:', error.message);
-      }
-    },
-
     handleImageSelected(imageData) {
+      this.cancelActiveAnalysis();
       this.selectedImage = imageData;
-      // Don't auto-advance to step 2, let user see the preview first
-      this.resetAnalysis();
+      this.clearResults();
     },
 
     proceedToAnalysis() {
-      if (this.selectedImage) {
-        this.currentStep = 2;
-      }
+      if (this.selectedImage) this.currentStep = 2;
     },
 
     handleError(error) {
-      if (window.showToast) {
-        window.showToast(error, 'error');
-      }
+      window.showToast?.(error, 'error');
+    },
+
+    cancelActiveAnalysis() {
+      this.analysisRequestId += 1;
+      this.activeDetectionController?.abort();
+      this.activeDetectionController = null;
+      this.isAnalyzing = false;
+    },
+
+    normalizeDetectionResult(response) {
+      const allPredictions = response.predictions.map((prediction) => ({
+        className: prediction.className,
+        displayName: prediction.displayLabel,
+        diseaseKey: LEGACY_RECOMMENDATION_KEYS[prediction.className] || prediction.className,
+        category: prediction.category,
+        recommendationKey: LEGACY_RECOMMENDATION_KEYS[prediction.className] || null,
+        confidence: prediction.confidence,
+        boundingBox: prediction.boundingBox
+      }));
+
+      return {
+        ...response,
+        status: response.status,
+        provider: 'Roboflow',
+        image: response.image,
+        allPredictions,
+        topPrediction: allPredictions[0] || null,
+        timestamp: new Date().toISOString()
+      };
     },
 
     async runAnalysis() {
-      if (!this.selectedImage) return;
+      if (!this.selectedImage || this.isAnalyzing) return;
 
+      this.cancelActiveAnalysis();
+      const requestId = ++this.analysisRequestId;
+      const controller = new AbortController();
+      this.activeDetectionController = controller;
       this.isAnalyzing = true;
       this.analysisError = null;
       this.analysisStep = 1;
 
       try {
-        // Step 1: Load model (if not already loaded)
-        if (!citrusModel.isReady()) {
-          await citrusModel.loadModel();
-        }
+        await this.$nextTick();
         this.analysisStep = 2;
+        const response = await detectCitrusConditions(this.selectedImage.file, {
+          signal: controller.signal
+        });
 
-        // Step 2: Process image
-        await new Promise(resolve => setTimeout(resolve, 500)); // Show processing step
-        this.analysisStep = 3;
+        if (requestId !== this.analysisRequestId || controller.signal.aborted) return;
 
-        // Step 3: Run prediction
-        const result = await citrusModel.predictFromFile(this.selectedImage.file);
-        
-        this.predictionResult = result;
+        this.predictionResult = this.normalizeDetectionResult(response);
         this.currentStep = 3;
-        
-        // Auto-load recommendation
-        this.loadRecommendation();
 
-        if (window.showToast) {
-          window.showToast('Analysis complete!', 'success');
+        if (response.status === 'detected') {
+          this.loadRecommendation();
+          window.showToast?.(`${response.predictions.length} detection(s) found`, 'success');
+        } else {
+          this.recommendation = null;
+          window.showToast?.('No supported target detected', 'info');
         }
-
       } catch (error) {
-        console.error('Analysis failed:', error);
-        this.analysisError = error.message;
-        
-        if (window.showToast) {
-          window.showToast('Analysis failed: ' + error.message, 'error');
-        }
+        if (controller.signal.aborted || requestId !== this.analysisRequestId) return;
+        this.analysisError = error.message || 'Detection service unavailable. Please try again.';
+        window.showToast?.(this.analysisError, 'error');
       } finally {
-        this.isAnalyzing = false;
+        if (requestId === this.analysisRequestId) {
+          this.isAnalyzing = false;
+          this.activeDetectionController = null;
+        }
       }
     },
 
-    // New: simulated pest scan handler
-    async runPestScan() {
-      if (!this.selectedImage) return;
+    buildLocalRecommendation(prediction) {
+      if (!prediction) return null;
 
-      this.isPestScanning = true;
-      this.analysisError = null;
-
-      try {
-        const result = await citrusModel.predictPestFromFile(this.selectedImage.file);
-        this.predictionResult = result;
-        this.currentStep = 3;
-
-        // Clear recommendation since pests may have different guidance
-        this.recommendation = null;
-
-        if (window.showToast) {
-          window.showToast('Pest scan complete (simulated confidences)', 'info');
-        }
-      } catch (error) {
-        console.error('Pest scan failed:', error);
-        this.analysisError = error.message;
-        if (window.showToast) {
-          window.showToast('Pest scan failed: ' + error.message, 'error');
-        }
-      } finally {
-        this.isPestScanning = false;
+      if (prediction.diseaseKey === 'healthy') {
+        return {
+          displayName: prediction.displayName,
+          category: prediction.category,
+          modelClass: prediction.className,
+          description: this.getClassDescription(prediction),
+          summary: 'A region was detected as Healthy Citrus. Continue monitoring the full plant and review any other detections listed above.',
+          symptoms: [],
+          causes: [],
+          treatmentSteps: [],
+          preventionSteps: ['Continue good watering, sanitation, nutrition, and regular inspection practices.'],
+          whenToEscalate: ['If symptoms appear or plant health declines despite normal care.'],
+          severity: 'low',
+          disclaimer: 'Guidance only—confirm plant health with a local agriculture technician or DA office.'
+        };
       }
+
+      if (prediction.category === 'pest' || PEST_KEYS.has(prediction.diseaseKey)) {
+        return {
+          displayName: prediction.displayName,
+          category: prediction.category,
+          modelClass: prediction.className,
+          description: this.getClassDescription(prediction),
+          summary: `The model detected a possible ${prediction.displayName}. Confirm by inspecting the boxed region and nearby plants.`,
+          symptoms: ['Inspect leaves, shoots, stems, and fruit around the detected region for live insects or feeding damage.'],
+          causes: ['Possible pest presence; environmental and crop-management conditions may influence infestation.'],
+          treatmentSteps: [
+            'Isolate or mark affected plants for closer monitoring.',
+            'Remove heavily affected material when practical and dispose of it safely.',
+            'Use integrated pest management and follow locally approved product labels.'
+          ],
+          preventionSteps: [
+            'Inspect new growth and fruit regularly.',
+            'Keep tools and orchard debris clean.',
+            'Encourage beneficial insects and avoid unnecessary broad-spectrum pesticide use.'
+          ],
+          whenToEscalate: ['The pest is present across multiple trees.', 'There is rapid damage, fruit drop, or continuing spread.'],
+          severity: 'medium',
+          disclaimer: 'Guidance only—confirm identification and treatment with a local agriculture technician or DA office.'
+        };
+      }
+
+      return {
+        displayName: prediction.displayName,
+        category: prediction.category,
+        modelClass: prediction.className,
+        description: this.getClassDescription(prediction),
+        summary: `Possible ${prediction.displayName} detected. Review the boxed region and confirm the finding with a local agriculture technician.`,
+        symptoms: ['Inspect the detected area and nearby plant tissue for matching symptoms or organisms.'],
+        causes: ['The model label is an initial image-based classification and may require field confirmation.'],
+        treatmentSteps: ['Document the affected plant and monitor changes before applying any treatment.'],
+        preventionSteps: ['Maintain sanitation and regular scouting of nearby citrus plants.'],
+        whenToEscalate: ['The condition spreads, affects fruit or new growth, or cannot be confirmed visually.'],
+        severity: 'medium',
+        disclaimer: 'Guidance only—this model result is not a confirmed diagnosis or treatment recommendation.'
+      };
+    },
+
+    getClassDescription(prediction) {
+      const catalogEntry = CLASS_CATALOG_BY_LABEL[prediction?.className];
+      return catalogEntry?.description
+        || `The model identified a possible ${prediction?.displayName || 'citrus condition'}. This image-based result should be confirmed by inspecting the plant and consulting a local agriculture technician.`;
+    },
+
+    getRecommendationDescription(recommendation, prediction) {
+      const generatedDescription = recommendation?.description?.trim();
+      const genericDescription = 'The detected class may represent a citrus disease or pest, but an image-based model result is not a confirmed diagnosis.';
+
+      return generatedDescription && generatedDescription !== genericDescription
+        ? generatedDescription
+        : this.getClassDescription(prediction);
     },
 
     async loadRecommendation() {
-      if (!this.predictionResult) return;
+      const target = this.recommendationTarget;
+      const resultReference = this.predictionResult;
+      if (!target || !resultReference) return;
 
-      const diseaseKey = this.predictionResult.topPrediction.diseaseKey;
       this.isLoadingRecommendation = true;
       this.recommendationError = null;
+      const llmKey = target.recommendationKey || target.className.replace(/_/g, '-');
+      const llmContext = {
+        displayName: target.displayName,
+        category: target.category,
+        modelClass: target.className,
+        confidence: Math.round(target.confidence * 100),
+        request: 'Start with a short, plain-language description of what this detected class is. Then provide cautious symptoms, causes, treatment, prevention, and escalation guidance. Do not infer severity from confidence. Do not recommend treatment for beneficial or other classes.'
+      };
 
       try {
-        const response = await getRecommendation(diseaseKey);
-        this.recommendation = response.data;
-        
+        const response = await generateAIRecommendation(llmKey, llmContext, false);
+        if (this.predictionResult === resultReference) {
+          this.recommendation = {
+            ...response.data,
+            displayName: target.displayName,
+            category: target.category,
+            modelClass: target.className,
+            description: this.getRecommendationDescription(response.data, target),
+            summary: response.data.summary || `Possible ${target.displayName} detected.`
+          };
+        }
       } catch (error) {
-        console.error('Failed to load recommendation:', error);
-        this.recommendationError = error.message;
-        // Local fallbacks: healthy message or pest-based guidance
+        if (this.predictionResult !== resultReference) return;
         try {
-          if (diseaseKey === 'healthy') {
-            this.recommendation = {
-              summary: 'No disease detected. Plant appears healthy.',
-              symptoms: [],
-              causes: [],
-              treatmentSteps: [],
-              preventionSteps: ['Continue good cultural practices: regular watering, balanced fertilization, and monitoring.'],
-              whenToEscalate: [],
-              severity: 'low',
-              disclaimer: 'This is a visual check; if you suspect issues, seek expert diagnosis.'
-            };
-            this.recommendationError = null;
-          } else {
-            const pest = citrusModel.pestList?.find(p => p.diseaseKey === diseaseKey);
-            if (pest) {
+          if (target.recommendationKey) {
+            const response = await getRecommendation(target.recommendationKey);
+            if (this.predictionResult === resultReference) {
               this.recommendation = {
-                summary: `Detected likely pest: ${pest.displayName}. ${pest.description}`,
-                symptoms: [pest.description],
-                causes: ['Pest infestation - monitor surrounding plants and fruits'],
-                treatmentSteps: [
-                  'Manually remove affected parts where practical',
-                  'Apply targeted insecticidal soap or approved pesticide according to label',
-                  'Introduce natural predators if available (biocontrol)'
-                ],
-                preventionSteps: [
-                  'Regularly inspect new plants and fruit',
-                  'Maintain good sanitation and remove fallen debris',
-                  'Avoid excessive nitrogen fertilization which attracts sap-feeding pests'
-                ],
-                whenToEscalate: ['Widespread infestation across multiple trees', 'Significant fruit drop or crop loss'],
-                severity: 'medium',
-                disclaimer: 'Local guidance only. Consult extension services for regulated pesticide advice.'
+                ...response.data,
+                displayName: target.displayName,
+                category: target.category,
+                modelClass: target.className,
+                description: this.getRecommendationDescription(response.data, target)
               };
-              this.recommendationError = null;
             }
+          } else {
+            this.recommendation = this.buildLocalRecommendation(target);
           }
         } catch (fallbackError) {
-          console.error('Local recommendation fallback failed:', fallbackError);
-        }
-
-        // Try to generate fallback recommendation (AI)
-        try {
-          const aiResponse = await generateAIRecommendation(diseaseKey, {
-            confidence: Math.round(this.predictionResult.topPrediction.confidence * 100),
-            severity: this.getSeverityFromDisease(diseaseKey)
-          });
-          this.recommendation = aiResponse.data;
-          this.recommendationError = null; // Clear error since AI fallback worked
-          
-          if (window.showToast) {
-            window.showToast('AI-generated recommendations loaded', 'info');
+          if (this.predictionResult === resultReference) {
+            this.recommendation = this.buildLocalRecommendation(target);
+            if (!this.recommendation) this.recommendationError = fallbackError.message;
           }
-        } catch (aiError) {
-          console.error('AI recommendation fallback failed:', aiError);
         }
-        
       } finally {
-        this.isLoadingRecommendation = false;
+        if (this.predictionResult === resultReference) this.isLoadingRecommendation = false;
       }
     },
 
     async enhanceWithAI() {
-      if (!this.predictionResult || this.isEnhancing) return;
+      const target = this.recommendationTarget;
+      if (!target || this.isEnhancing) return;
 
-      const diseaseKey = this.predictionResult.topPrediction.diseaseKey;
+      if (!target.recommendationKey) {
+        window.showToast?.('AI enhancement is not available for this model class yet.', 'info');
+        return;
+      }
+
       this.isEnhancing = true;
-
       try {
-        const response = await generateAIRecommendation(diseaseKey, {
-          confidence: Math.round(this.predictionResult.topPrediction.confidence * 100),
-          severity: this.getSeverityFromDisease(diseaseKey),
-          userContext: 'User requested enhanced recommendations'
+        const response = await generateAIRecommendation(target.recommendationKey, {
+          confidence: Math.round(target.confidence * 100),
+          severity: this.getManagementPriority(target.recommendationKey),
+          userContext: 'User requested enhanced management guidance for a Roboflow detection.'
         });
-
-        this.recommendation = response.data;
-        
-        if (window.showToast) {
-          window.showToast('AI-enhanced recommendations loaded!', 'success');
-        }
-
+        this.recommendation = {
+          ...response.data,
+          displayName: target.displayName,
+          category: target.category,
+          modelClass: target.className,
+          description: this.getRecommendationDescription(response.data, target)
+        };
+        window.showToast?.('AI-enhanced recommendations loaded', 'success');
       } catch (error) {
-        console.error('AI enhancement failed:', error);
-        
-        if (window.showToast) {
-          window.showToast('Unable to enhance recommendations at this time', 'error');
-        }
+        window.showToast?.('Unable to enhance recommendations at this time', 'error');
       } finally {
         this.isEnhancing = false;
       }
     },
 
-    getSeverityFromDisease(diseaseKey) {
-      const severityMap = {
-        'healthy': 'low',
-        'black-spot': 'medium', 
-        'canker': 'high',
-        'greening': 'high'
+    getManagementPriority(conditionKey) {
+      const priorities = {
+        healthy: 'low',
+        'black-spot': 'medium',
+        canker: 'high',
+        greening: 'high'
       };
-      return severityMap[diseaseKey] || 'medium';
+      return priorities[conditionKey] || 'medium';
     },
 
-    resetAnalysis() {
+    clearResults() {
       this.predictionResult = null;
       this.recommendation = null;
-      this.isAnalyzing = false;
       this.analysisStep = 0;
       this.analysisError = null;
       this.isLoadingRecommendation = false;
@@ -421,9 +509,10 @@ export default {
     },
 
     resetDetection() {
+      this.cancelActiveAnalysis();
       this.currentStep = 1;
       this.selectedImage = null;
-      this.resetAnalysis();
+      this.clearResults();
     }
   }
 };
@@ -431,53 +520,148 @@ export default {
 
 <style scoped>
 .detect-page {
-  padding: var(--spacing-2xl) 0;
+  --info: var(--primary);
+  --info-bg: var(--primary-light);
+  --warning: var(--secondary);
+  --warning-bg: var(--secondary-light);
+  --error: var(--secondary);
+  --error-bg: var(--secondary-light);
+  --error-text: var(--warning-text);
   min-height: 80vh;
+  padding: clamp(2rem, 5vw, 4rem) 0;
+  background:
+    radial-gradient(circle at 5% 0%, var(--detection-glow) 0, transparent 34rem),
+    var(--bg);
+}
+
+.detection-container {
+  max-width: 1200px;
 }
 
 .page-header {
+  max-width: 46rem;
+  margin: 0 auto var(--spacing-xl);
   text-align: center;
-  margin-bottom: var(--spacing-2xl);
+}
+
+.page-eyebrow,
+.step-kicker {
+  color: var(--primary);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.page-eyebrow {
+  margin-bottom: var(--spacing-sm);
 }
 
 .page-header h1 {
-  font-size: var(--font-size-3xl);
-  font-weight: 700;
   margin-bottom: var(--spacing-md);
   color: var(--text);
+  font-size: clamp(2rem, 5vw, 3rem);
 }
 
 .page-header p {
-  font-size: var(--font-size-lg);
+  margin: 0;
   color: var(--text-secondary);
-  margin-bottom: 0;
+  font-size: clamp(1rem, 2vw, var(--font-size-lg));
+  line-height: 1.6;
 }
 
-/* Detection Flow */
+.flow-progress {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 42rem;
+  margin: 0 auto var(--spacing-2xl);
+  padding: 0;
+  list-style: none;
+}
+
+.flow-progress li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.flow-progress li:not(:last-child)::after {
+  position: absolute;
+  top: 1rem;
+  left: calc(50% + 1.25rem);
+  width: calc(100% - 2.5rem);
+  height: 2px;
+  background: var(--border);
+  content: '';
+}
+
+.flow-progress li.complete::after {
+  background: var(--success);
+}
+
+.flow-progress span {
+  z-index: 1;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  font-weight: 800;
+}
+
+.flow-progress .current span {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-light);
+}
+
+.flow-progress .complete span {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--text-light);
+}
+
+.detect-page {
+  overflow-x: hidden;
+}
+
 .detection-flow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2xl);
+  display: grid;
+  gap: var(--spacing-xl);
+}
+
+@media (min-width: 1100px) {
+  .detection-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .detection-flow > section:nth-child(3) {
+    grid-column: 1 / -1;
+  }
 }
 
 .detection-step {
-  background: var(--card);
-  border: 2px solid var(--border-light);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  transition: var(--transition);
-  opacity: 0.6;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .detection-step.active {
   border-color: var(--primary);
   box-shadow: var(--shadow-md);
-  opacity: 1;
 }
 
 .detection-step.completed {
   border-color: var(--success);
-  opacity: 0.9;
 }
 
 .step-header {
@@ -488,18 +672,16 @@ export default {
 }
 
 .step-number {
+  display: grid;
   width: 3rem;
   height: 3rem;
+  flex: 0 0 3rem;
+  place-items: center;
+  border-radius: 50%;
   background: var(--border-light);
   color: var(--text-muted);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: var(--font-size-lg);
   font-weight: 700;
-  flex-shrink: 0;
-  transition: var(--transition);
 }
 
 .detection-step.active .step-number {
@@ -514,62 +696,94 @@ export default {
 
 .step-header h2 {
   margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: 600;
   color: var(--text);
+  font-size: var(--font-size-xl);
 }
 
-/* Image Preview Small */
+.step-kicker {
+  margin: 0 0 var(--spacing-xs);
+}
+
+.step-description {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.proceed-section,
+.analysis-ready,
+.analysis-error,
+.analysis-progress,
+.loading-recommendation,
+.recommendation-error {
+  text-align: center;
+}
+
+.proceed-section {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+  text-align: right;
+}
+
 .image-preview-small {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-lg);
-  background: var(--bg-secondary);
   border-radius: var(--radius);
+  background: var(--bg-secondary);
 }
 
 .image-preview-small img {
   width: 80px;
   height: 80px;
-  object-fit: cover;
-  border-radius: var(--radius);
   border: 2px solid var(--success);
+  border-radius: var(--radius);
+  object-fit: cover;
 }
 
-/* Analysis Section */
-.analysis-section {
-  text-align: center;
+.image-preview-small > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacing-md);
+}
+
+.analysis-section,
+.analysis-complete {
+  padding: var(--spacing-lg) 0;
 }
 
 .analysis-progress {
-  padding: var(--spacing-2xl) 0;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
 }
 
 .spinner-container {
   margin-bottom: var(--spacing-lg);
 }
 
-.analysis-progress p {
-  font-size: var(--font-size-lg);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-lg);
-}
-
 .progress-steps {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-lg);
   flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
 }
 
 .progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-secondary);
   border-radius: var(--radius);
-  font-size: var(--font-size-sm);
+  background: var(--bg-secondary);
   color: var(--text-muted);
-  transition: var(--transition);
+  font-size: var(--font-size-sm);
 }
 
 .progress-step.active {
@@ -577,107 +791,118 @@ export default {
   color: var(--text-light);
 }
 
-.analysis-ready,
-.analysis-error {
-  text-align: center;
-  padding: var(--spacing-lg) 0;
+.progress-step span {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
 }
 
-.analysis-ready p {
+.analysis-title {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.analysis-help {
+  margin: var(--spacing-xs) 0 0;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-lg);
 }
 
-.analysis-complete {
-  padding: var(--spacing-lg) 0;
+.ready-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto var(--spacing-md);
+  place-items: center;
+  border-radius: 50%;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 
-/* Results Section */
+.analysis-ready {
+  padding: var(--spacing-xl) 0;
+}
+
 .results-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--spacing-xl);
-}
-
-.prediction-section {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--spacing-xl);
 }
 
 .loading-recommendation,
 .recommendation-error {
-  text-align: center;
   padding: var(--spacing-xl);
 }
 
-.loading-recommendation p,
-.recommendation-error p {
-  margin-bottom: var(--spacing-lg);
+.provider-note {
+  margin: 0;
+  padding: var(--spacing-md);
+  border-radius: var(--radius);
+  background: var(--warning-bg);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
 }
 
 .results-actions {
   display: flex;
-  gap: var(--spacing-md);
   justify-content: center;
   flex-wrap: wrap;
+  gap: var(--spacing-md);
   padding-top: var(--spacing-xl);
   border-top: 1px solid var(--border);
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .step-header {
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+@media (max-width: 1099px) {
+  .detection-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detection-flow > section:nth-child(3) {
+    grid-column: auto;
+  }
+
+  .step-header,
+  .image-preview-small,
+  .image-preview-small > div,
+  .progress-steps,
+  .results-actions {
+    align-items: center;
     flex-direction: column;
     text-align: center;
-    gap: var(--spacing-md);
   }
 
   .detection-step {
     padding: var(--spacing-lg);
   }
 
-  .image-preview-small {
-    flex-direction: column;
+  .flow-progress {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .flow-progress strong {
+    font-size: var(--font-size-xs);
+  }
+
+  .proceed-section {
     text-align: center;
-  }
-
-  .progress-steps {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-
-  .results-actions {
-    flex-direction: column;
-    align-items: center;
   }
 
   .results-actions .btn {
     width: 100%;
-    max-width: 300px;
+    max-width: 320px;
   }
-}
-
-/* Loading animations */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.analysis-progress {
-  animation: pulse 2s infinite;
-}
-
-/* Proceed section */
-.proceed-section {
-  margin-top: var(--spacing-lg);
-  text-align: center;
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--border);
-}
-
-.proceed-section .btn {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
 }
 </style>

@@ -64,6 +64,16 @@
             >
               About
             </router-link>
+            <button
+              type="button"
+              class="theme-toggle"
+              :aria-label="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+              :aria-pressed="isDarkMode"
+              @click="toggleTheme"
+            >
+              <span aria-hidden="true">{{ isDarkMode ? '☀️' : '🌙' }}</span>
+              <span>{{ isDarkMode ? 'Light' : 'Dark' }}</span>
+            </button>
           </div>
         </div>
       </nav>
@@ -128,11 +138,17 @@ export default {
   
   data() {
     return {
-      mobileMenuOpen: false
+      mobileMenuOpen: false,
+      isDarkMode: false
     };
   },
 
   mounted() {
+    const savedTheme = localStorage.getItem('agridrone-theme');
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    this.isDarkMode = savedTheme ? savedTheme === 'dark' : prefersDark;
+    this.applyTheme();
+
     // Close mobile menu when clicking outside
     document.addEventListener('click', this.handleOutsideClick);
     
@@ -146,6 +162,16 @@ export default {
   },
 
   methods: {
+    applyTheme() {
+      document.documentElement.dataset.theme = this.isDarkMode ? 'dark' : 'light';
+    },
+
+    toggleTheme() {
+      this.isDarkMode = !this.isDarkMode;
+      localStorage.setItem('agridrone-theme', this.isDarkMode ? 'dark' : 'light');
+      this.applyTheme();
+    },
+
     toggleMobileMenu() {
       this.mobileMenuOpen = !this.mobileMenuOpen;
     },
@@ -198,6 +224,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 /* Header Styles */
@@ -282,6 +309,26 @@ export default {
 .nav-link-primary:hover {
   background-color: var(--primary-hover);
   color: var(--text-light) !important;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  font: inherit;
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--primary);
+  background: var(--primary-light);
 }
 
 /* Mobile Menu Toggle */
@@ -400,7 +447,7 @@ export default {
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1099px) {
   .mobile-menu-toggle {
     display: flex;
   }

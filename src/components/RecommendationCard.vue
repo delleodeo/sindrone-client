@@ -9,6 +9,11 @@
     </div>
 
     <div class="recommendation-content">
+      <div v-if="recommendation.description" class="recommendation-description">
+        <h4>About {{ recommendation.displayName || 'this detected class' }}</h4>
+        <p>{{ recommendation.description }}</p>
+      </div>
+
       <!-- Summary -->
       <div class="recommendation-summary">
         <p>{{ recommendation.summary }}</p>
@@ -159,17 +164,17 @@ export default {
 
 .severity-low {
   background: var(--success-bg);
-  color: var(--green-800);
+  color: var(--success-text);
 }
 
 .severity-medium {
   background: var(--warning-bg);
-  color: #92400e;
+  color: var(--warning-text);
 }
 
 .severity-high {
   background: var(--error-bg);
-  color: #991b1b;
+  color: var(--error-text);
 }
 
 .recommendation-content {
@@ -194,6 +199,25 @@ export default {
 
 .recommendation-section {
   margin-bottom: var(--spacing-xl);
+}
+
+.recommendation-description {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--info-bg);
+}
+
+.recommendation-description h4 {
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text);
+}
+
+.recommendation-description p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
 }
 
 .recommendation-section h4 {
@@ -255,7 +279,7 @@ export default {
   align-items: flex-start;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  background: white;
+  background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -272,21 +296,21 @@ export default {
 }
 
 .contact-urgency.urgent {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error);
 }
 
 .contact-urgency.high {
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #fde68a;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning);
 }
 
 .contact-urgency.normal {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 .contact-reason {
@@ -307,7 +331,7 @@ export default {
   align-items: flex-start;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  background: white;
+  background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -324,21 +348,21 @@ export default {
 }
 
 .contact-urgency.urgent {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error);
 }
 
 .contact-urgency.high {
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #fde68a;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning);
 }
 
 .contact-urgency.normal {
-  background: #e0f2fe;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info);
 }
 
 .contact-reason {
@@ -349,7 +373,7 @@ export default {
 }
 
 .ai-enhancements {
-  background: linear-gradient(135deg, var(--green-50), var(--orange-50));
+  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
   padding: var(--spacing-lg);
   border-radius: var(--radius);
   border: 2px dashed var(--primary);
